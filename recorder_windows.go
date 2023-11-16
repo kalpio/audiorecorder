@@ -2,6 +2,8 @@
 
 package audiorecorder
 
+import "strconv"
+
 func ffmpegArguments(deviceName string, duration int) []string {
 	return []string{
 		"-hide_banner",
@@ -12,13 +14,14 @@ func ffmpegArguments(deviceName string, duration int) []string {
 		"-sample_rate",
 		"44100",
 		"-t",
-		string(duration),
+		strconv.Itoa(duration),
 		"-f",
 		"wav",
 		"-"}
 }
 
 func ffmpegArgumentsFile(deviceName string, fileName string, duration int) []string {
+
 	return []string{
 		"-hide_banner",
 		"-f",
@@ -28,7 +31,7 @@ func ffmpegArgumentsFile(deviceName string, fileName string, duration int) []str
 		"-sample_rate",
 		"44100",
 		"-t",
-		string(duration),
+		strconv.Itoa(duration),
 		"-y",
 		fileName}
 }
