@@ -29,7 +29,7 @@ func NewRecorder(ffmpeg string) *recorder {
 }
 
 func (r recorder) Record(ctx context.Context, device string, duration int) (*domain.Record, error) {
-	cmd := exec.CommandContext(ctx, r.ffmpeg, ffmpegArguments(device, duration)...)
+	cmd := exec.CommandContext(ctx, r.ffmpeg, ffmpegArguments(device, duration+1)...)
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (r recorder) Record(ctx context.Context, device string, duration int) (*dom
 
 func (r recorder) RecordFile(ctx context.Context, device string, duration int) (*domain.RecordFile, error) {
 	fileName := path.Join(os.TempDir(), fmt.Sprintf("%s.wav", r.randomString(10)))
-	cmd := exec.CommandContext(ctx, r.ffmpeg, ffmpegArgumentsFile(device, fileName, duration)...)
+	cmd := exec.CommandContext(ctx, r.ffmpeg, ffmpegArgumentsFile(device, fileName, duration+1)...)
 	stderr, _ := cmd.StderrPipe()
 	if err := cmd.Start(); err != nil {
 		return nil, err
