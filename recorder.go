@@ -1,6 +1,7 @@
 package audiorecorder
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/kalpio/audiorecorder/domain"
@@ -28,7 +30,7 @@ func NewRecorder(ffmpeg string) *recorder {
 
 func (r recorder) Record(ctx context.Context, device string, duration int) (*domain.Record, error) {
 	cmd := exec.CommandContext(ctx, r.ffmpeg, ffmpegArguments(device, duration)...)
-	stdout, err := cmd.StdoutPipe()
+	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, err
 	}
@@ -37,10 +39,20 @@ func (r recorder) Record(ctx context.Context, device string, duration int) (*dom
 		return nil, err
 	}
 
-	log.Println("Start recording...")
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			if strings.Contains(scanner.Text(), "Press [q] to stop") {
+				log.Println("Start recording...")
+			}
+			if strings.Contains(scanner.Text(), "size=") {
+				log.Println("Stop recording")
+			}
+		}
+	}()
 
 	result := &domain.Record{}
-	_, err = io.Copy(result, stdout)
+	_, err = io.Copy(result, stderr)
 	if err != nil {
 		return nil, err
 	}
@@ -49,18 +61,28 @@ func (r recorder) Record(ctx context.Context, device string, duration int) (*dom
 		return nil, err
 	}
 
-	log.Println("Stop recording")
-
 	return result, nil
 }
 
 func (r recorder) RecordFile(ctx context.Context, device string, duration int) (*domain.RecordFile, error) {
 	fileName := path.Join(os.TempDir(), fmt.Sprintf("%s.wav", r.randomString(10)))
 	cmd := exec.CommandContext(ctx, r.ffmpeg, ffmpegArgumentsFile(device, fileName, duration)...)
+	stderr, _ := cmd.StderrPipe()
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	log.Println("Start recording...")
+
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			if strings.Contains(scanner.Text(), "Press [q] to stop") {
+				log.Println("Start recording...")
+			}
+			if strings.Contains(scanner.Text(), "size=") {
+				log.Println("Stop recording")
+			}
+		}
+	}()
 
 	if err := cmd.Wait(); err != nil {
 		return nil, err
